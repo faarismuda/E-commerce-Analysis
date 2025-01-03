@@ -337,8 +337,6 @@ bar_chart = alt.Chart(top_delivery_cities).mark_bar().encode(
     height=400,
 )
 
-st.altair_chart(bar_chart, use_container_width=True)
-
 # Membuat scatter plot dengan threshold
 scatter_plot = alt.Chart(review_stats).mark_circle(size=60, color='blue').encode(
     x=alt.X('delivery_duration:Q', title='Durasi Pengiriman (Hari)'),
@@ -357,8 +355,24 @@ threshold_line = alt.Chart(pd.DataFrame({'x': [10]})).mark_rule(color='red', str
 # Gabungkan scatter plot dengan garis threshold
 combined_plot = scatter_plot + threshold_line
 
-# Menampilkan scatter plot di Streamlit
-st.altair_chart(combined_plot, use_container_width=True)
+
+
+
+# Layout dengan kolom
+cols3 = st.columns([3, 2])
+
+# Card untuk Rata-Rata Waktu Pengiriman di Kota Teratas
+with cols3[0]:
+    
+    st.altair_chart(bar_chart, use_container_width=True)
+    
+
+
+# Card untuk Hubungan Waktu Pengiriman dan Skor Ulasan
+with cols3[1]:
+    # Menampilkan scatter plot di Streamlit
+    st.altair_chart(combined_plot, use_container_width=True)
+
 
 #Q2
 orders['order_purchase_timestamp'] = pd.to_datetime(orders['order_purchase_timestamp'])
@@ -452,30 +466,4 @@ cancel_rate_per_category = (cancelled_per_category / orders_per_category).fillna
 
 
 
-# # Layout dengan kolom
-# cols3 = st.columns([3, 2])
-
-# # Card untuk Rata-Rata Waktu Pengiriman di Kota Teratas
-# with cols3[0]:
-#     st.markdown(
-#         f"""
-#         <div class="card">
-#             <div class="header">Rata-Rata Waktu Pengiriman di Kota Teratas</div>
-#         </div>
-#         """,
-#         unsafe_allow_html=True,
-#     )
-
-
-# # Card untuk Hubungan Waktu Pengiriman dan Skor Ulasan
-# with cols3[1]:
-#     st.markdown(
-#         f"""
-#         <div class="card">
-#             <div class="header">Hubungan Waktu Pengiriman dan Skor Ulasan</div>
-
-#         </div>
-#         """,
-#         unsafe_allow_html=True,
-#     )
 

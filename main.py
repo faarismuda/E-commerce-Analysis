@@ -290,6 +290,9 @@ with cols2[1]:
         unsafe_allow_html=True,
     )
     
+    
+st.divider()
+
 #Q1
 orders['order_year'] = orders['order_purchase_timestamp'].dt.year
 orders_2017 = orders[orders['order_year'] == 2017]

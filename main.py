@@ -483,85 +483,84 @@ else:
 
 
 # Q2
-orders["order_purchase_timestamp"] = pd.to_datetime(orders["order_purchase_timestamp"])
-orders_2017 = orders[orders["order_purchase_timestamp"].dt.year == 2017]
+with st.spinner('Loading data, please wait...'):
+    orders["order_purchase_timestamp"] = pd.to_datetime(orders["order_purchase_timestamp"])
+    orders_2017 = orders[orders["order_purchase_timestamp"].dt.year == 2017]
 
-data_q2 = orders_2017.merge(order_items, on="order_id", how="inner")
-data_q2 = data_q2.merge(customers, on="customer_id", how="inner")
-data_q2 = data_q2.merge(order_payments, on="order_id", how="left")
+    data_q2 = orders_2017.merge(order_items, on="order_id", how="inner")
+    data_q2 = data_q2.merge(customers, on="customer_id", how="inner")
+    data_q2 = data_q2.merge(order_payments, on="order_id", how="left")
 
-data_q2["total_spent"] = data_q2["price"] + data_q2["freight_value"]
+    data_q2["total_spent"] = data_q2["price"] + data_q2["freight_value"]
 
-data_q2 = data_q2[
-    [
-        "customer_unique_id",
-        "order_id",
-        "order_purchase_timestamp",
-        "price",
-        "freight_value",
-        "total_spent",
-        "payment_value",
-        "payment_type",
+    data_q2 = data_q2[
+        [
+            "customer_unique_id",
+            "order_id",
+            "order_purchase_timestamp",
+            "price",
+            "freight_value",
+            "total_spent",
+            "payment_value",
+            "payment_type",
+        ]
     ]
-]
 
-invalid_total_spent = data_q2[data_q2["total_spent"] < 0]
-data_q2["payment_difference"] = abs(data_q2["payment_value"] - data_q2["total_spent"])
-invalid_payments = data_q2[data_q2["payment_difference"] > 100]
+    invalid_total_spent = data_q2[data_q2["total_spent"] < 0]
+    data_q2["payment_difference"] = abs(data_q2["payment_value"] - data_q2["total_spent"])
+    invalid_payments = data_q2[data_q2["payment_difference"] > 100]
 
-data_q2_cleaned = data_q2.drop_duplicates()
-data_q2_cleaned["order_purchase_timestamp"] = pd.to_datetime(
-    data_q2_cleaned["order_purchase_timestamp"]
-)
-data_q2_cleaned = data_q2_cleaned[data_q2_cleaned["payment_difference"] <= 100]
-
-data_q2_cleaned.to_csv("Dataset/data_q2_cleaned.csv", index=False)
-data_q2_cleaned = pd.read_csv("Dataset/data_q2_cleaned.csv")
-
-rfm = (
-    data_q2_cleaned.groupby("customer_unique_id")
-    .agg(
-        {
-            "order_purchase_timestamp": lambda x: (
-                pd.Timestamp("2018-01-01") - pd.to_datetime(x).max()
-            ).days,
-            "order_id": "count",
-            "total_spent": "sum",
-        }
+    data_q2_cleaned = data_q2.drop_duplicates()
+    data_q2_cleaned["order_purchase_timestamp"] = pd.to_datetime(
+        data_q2_cleaned["order_purchase_timestamp"]
     )
-    .reset_index()
-)
+    data_q2_cleaned = data_q2_cleaned[data_q2_cleaned["payment_difference"] <= 100]
 
-rfm.columns = ["customer_unique_id", "recency", "frequency", "monetary"]
+    data_q2_cleaned.to_csv("Dataset/data_q2_cleaned.csv", index=False)
+    data_q2_cleaned = pd.read_csv("Dataset/data_q2_cleaned.csv")
 
-rfm["R_score"] = pd.qcut(rfm["recency"], 4, labels=[4, 3, 2, 1])
-rfm["F_score"] = pd.cut(
-    rfm["frequency"],
-    bins=[0, 1, 2, 5, rfm["frequency"].max()],
-    labels=[1, 2, 3, 4],
-    include_lowest=True,
-)
-rfm["M_score"] = pd.qcut(rfm["monetary"], 4, labels=[1, 2, 3, 4])
+    rfm = (
+        data_q2_cleaned.groupby("customer_unique_id")
+        .agg(
+            {
+                "order_purchase_timestamp": lambda x: (
+                    pd.Timestamp("2018-01-01") - pd.to_datetime(x).max()
+                ).days,
+                "order_id": "count",
+                "total_spent": "sum",
+            }
+        )
+        .reset_index()
+    )
 
-rfm["RFM_score"] = (
-    rfm["R_score"].astype(int) + rfm["F_score"].astype(int) + rfm["M_score"].astype(int)
-)
+    rfm.columns = ["customer_unique_id", "recency", "frequency", "monetary"]
 
+    rfm["R_score"] = pd.qcut(rfm["recency"], 4, labels=[4, 3, 2, 1])
+    rfm["F_score"] = pd.cut(
+        rfm["frequency"],
+        bins=[0, 1, 2, 5, rfm["frequency"].max()],
+        labels=[1, 2, 3, 4],
+        include_lowest=True,
+    )
+    rfm["M_score"] = pd.qcut(rfm["monetary"], 4, labels=[1, 2, 3, 4])
 
-def segment_customers(rfm_score):
-    if rfm_score >= 10:
-        return "Best Customers"
-    elif rfm_score >= 7:
-        return "Loyal Customers"
-    elif rfm_score >= 5:
-        return "At Risk"
-    else:
-        return "Lost Customers"
+    rfm["RFM_score"] = (
+        rfm["R_score"].astype(int) + rfm["F_score"].astype(int) + rfm["M_score"].astype(int)
+    )
 
+    def segment_customers(rfm_score):
+        if rfm_score >= 10:
+            return "Best Customers"
+        elif rfm_score >= 7:
+            return "Loyal Customers"
+        elif rfm_score >= 5:
+            return "At Risk"
+        else:
+            return "Lost Customers"
 
-rfm["segment"] = rfm["RFM_score"].apply(segment_customers)
+    rfm["segment"] = rfm["RFM_score"].apply(segment_customers)
 
-# Buat layout 2x2 menggunakan columns
+# After the spinner finishes, continue with the layout code
 col1, col2 = st.columns(2)
 col3, col4 = st.columns(2)
 
@@ -604,15 +603,13 @@ with col3:
 # --- Grafik 4: Heatmap Segmentasi Pelanggan ---
 with col4:
     st.subheader("RFM Segmentasi Pelanggan")
-
-    # Hitung ringkasan RFM
     rfm_summary = (
         rfm.groupby("segment")
         .agg({"customer_unique_id": "count", "frequency": "mean", "monetary": "mean"})
         .sort_values(by="monetary", ascending=False)
     )
 
-    # Buat Heatmap
+    # Create Heatmap
     fig, ax = plt.subplots(figsize=(12, 4))
     sns.heatmap(
         rfm_summary[["frequency", "monetary"]],
